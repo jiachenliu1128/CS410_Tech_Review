@@ -3,6 +3,7 @@
 import time, os, psutil
 import numpy as np
 from datasets import load_dataset
+from dataloader import load_ner_dataset, load_cls_dataset, load_sts_dataset
 import spacy
 
 # 1. Load models (Basic version & Transformer version)
@@ -12,12 +13,9 @@ def load_models():
     return nlp_base, nlp_trf
 
 # 2. Data loading functions: NER / Classification / Similarity
-def load_ner_dataset():
-    ...
-def load_cls_dataset():
-    ...
-def load_sts_dataset():
-    ...
+ner_dataset = load_ner_dataset()
+cls_dataset = load_cls_dataset()
+sts_dataset = load_sts_dataset()
 
 # 3. Utility functions: Measure runtime, memory, convert to Doc, etc.
 def measure_runtime_and_memory(nlp, texts):
