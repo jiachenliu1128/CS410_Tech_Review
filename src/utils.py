@@ -2,11 +2,7 @@ import time
 import psutil
 import os
 import json
-
-def measure_runtime(func, *args, **kwargs):
-    start = time.time()
-    result = func(*args, **kwargs)
-    return result, time.time() - start
+from sklearn.metrics import precision_recall_fscore_support
 
 def get_memory_usage():
     return psutil.Process().memory_info().rss / (1024**2)
@@ -21,3 +17,11 @@ def get_model_size(model_path):
 def save_results(out_path, results_dict):
     with open(out_path, "w") as f:
         json.dump(results_dict, f, indent=4)
+        
+def calculate_metric(true_labels, pred_labels):
+    precision, recall, f1, _ = precision_recall_fscore_support(true_labels, pred_labels, average='weighted')
+    return {
+        "precision": precision,
+        "recall": recall,
+        "f1": f1
+    }
