@@ -4,10 +4,11 @@ Tech Review Project Repository of CS 410 Text Information Systems at University 
 
 Author: Jiachen Liang (liang88), Jiachen Liu (jl315)
 
-Models:
-    Base_simple -> ./data/simple.json -> {"ner: [metrics], "cla": [metrics], "sim": [metrics]}
-    Base_medium -> ./data/medium
-    Base_large
-    Tranformer
-
-    ./data
+# Models
+- Standard Models:
+    - Small: `en_core_web_sm`
+    - Medium: `en_core_web_md`
+    - Large: `en_core_web_lg`
+- Transformer Models:
+    - RoBERTa-base: `RoBERTa-base`
+    
