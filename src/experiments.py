@@ -1,20 +1,27 @@
 # experiments.py
-
+print("Importing libraries...")
 import argparse
-import time, os, psutil
-import numpy as np
-from dataloader import load_ner_dataset, load_cls_dataset, load_sts_dataset
+from pathlib import Path
+import time
 import spacy
 from spacy.training import Example
+from spacy.util import is_package
 from scipy.stats import pearsonr
+from dataloader import load_ner_dataset, load_cls_dataset, load_sts_dataset
 from utils import get_memory_usage, get_model_size, save_results, calculate_metric
+print("Libraries imported.")
 
 
 
 # Load models
-def load_models(model_name):
-    nlp_model = spacy.load(model_name) 
-    return nlp_model
+def load_models(model_name: str):
+    # First try to load directly (works if already installed or in sys.path)
+    try:
+        return spacy.load(model_name)
+    except OSError:
+        # Not installed: download then load
+        spacy.cli.download(model_name)
+        return spacy.load(model_name)
 
 
 
@@ -104,9 +111,10 @@ if __name__ == "__main__":
     ner_ds = load_ner_dataset()
     cls_ds = load_cls_dataset()
     sts_ds = load_sts_dataset()
+    breakpoint()
 
-    run_similarity_experiment(nlp_model, sts_ds)
-    run_classification_experiment(nlp_model, cls_ds)
-    run_ner_experiment(nlp_model, ner_ds)
+    ner_result = run_ner_experiment(nlp_model, ner_ds)
+    cls_result = run_classification_experiment(nlp_model, cls_ds)
+    sts_result = run_similarity_experiment(nlp_model, sts_ds)
     
     
