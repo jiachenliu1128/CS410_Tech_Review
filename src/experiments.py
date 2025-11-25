@@ -5,6 +5,7 @@ from pathlib import Path
 import time
 import spacy
 from spacy.training import Example
+from spacy.util import minibatch
 from scipy.stats import pearsonr
 from dataloader import load_ner_dataset, load_cls_dataset, load_sts_dataset
 from data_formatter import format_ner_dataset, format_cls_dataset, format_sts_dataset
@@ -88,11 +89,12 @@ def build_textcat_pipeline(nlp_model, label_names):
         nlp_model.remove_pipe("textcat")
 
     # For transformer models
-    if "trf" in nlp_model.meta["name"]:
-        config = {"model": {"@architectures": "spacy-transformers.TransformerModel"}}
-        textcat = nlp_model.add_pipe("textcat", config=config)
-    else:
-        textcat = nlp_model.add_pipe("textcat")
+    # if "trf" in nlp_model.meta["name"]:
+    #     config = {"model": {"@architectures": "spacy-transformers.TransformerModel"}}
+    #     textcat = nlp_model.add_pipe("textcat", config=config)
+    # else:
+    #     textcat = nlp_model.add_pipe("textcat")
+    textcat = nlp_model.add_pipe("textcat", last=True)
         
     # Register all AG News category labels
     for label in label_names:
@@ -119,6 +121,19 @@ def initializing_textcat(nlp_model, texts, labels, label_names):
     textcat.initialize(get_examples=lambda: init_examples, nlp=nlp_model)
     
     
+
+
+def train_categorizer(cls_nlp, train_examples, n_iter=5, batch_size = 16):
+    cls_nlp.initialize(get_examples=lambda: train_examples)
+    for epoch in range(n_iter):
+        random.shuffle(train_examples)
+        losses = {}
+        for batch in minibatch(train_examples, size=batch_size):
+            cls_nlp.update(batch, losses=losses)
+        print(f"[textcat] Epoch {epoch+1}/{n_iter}, loss: {losses.get('textcat', 0.0):.4f}")
+    return cls_nlp
+    
+    
     
 
     
@@ -134,21 +149,40 @@ def run_classification_experiment(nlp_model, cls_dataset, label_names):
     """
     print("Running Classification experiment...")
     
-    # prepare data and model
+    # build and train textcat pipeline
+    cls_nlp = nlp_model.copy()
+    cls_nlp = build_textcat_pipeline(cls_nlp, label_names)
+    
+    # prepare examples
     random.shuffle(cls_dataset)
-    texts = [d["text"] for d in cls_dataset]
-    labels = [d["label"] for d in cls_dataset]
-    nlp_model = build_textcat_pipeline(nlp_model, label_names)
-    initializing_textcat(nlp_model, texts, labels, label_names)
+    examples = []
+    for item in cls_dataset:
+        text = item["text"]
+        label = label_names[item["label"]]
+        doc = cls_nlp.make_doc(text)
+        cats = {lbl: 0.0 for lbl in label_names}
+        cats[label] = 1.0
+        examples.append(Example.from_dict(doc, {"cats": cats}))   
+
+    # 80% train / 20% validation
+    split = int(len(examples) * 0.8)
+    train_examples = examples[:split]
+    dev_examples = examples[split:]
+    dev_texts = [e.reference.text for e in dev_examples]
+    dev_labels = [max(e.y["cats"], key=e.y["cats"].get) for e in dev_examples]
+    
+    # train classifier
+    print("Training text categorizer...")
+    cls_nlp = train_categorizer(cls_nlp, train_examples)
     
     # run experiment and measure runtime
     start_time = time.time()
-    preds_raw = [nlp_model(text).cats for text in texts]
+    preds_raw = [cls_nlp(text).cats for text in dev_texts]
     runtime = time.time() - start_time
 
     # get predictions and calculate metrics
     preds = [max(cats, key=cats.get) for cats in preds_raw]
-    metrics = calculate_metric(labels, preds)
+    metrics = calculate_metric(dev_labels, preds)
 
     return {
         "precision": metrics["precision"],
@@ -156,7 +190,7 @@ def run_classification_experiment(nlp_model, cls_dataset, label_names):
         "f1": metrics["f1"],
         "runtime_sec": runtime,
         "memory_mb": get_memory_usage(),
-        "model_size_mb": get_model_size(nlp_model.path)
+        "model_size_mb": get_model_size(cls_nlp.path)
     }
     
    
