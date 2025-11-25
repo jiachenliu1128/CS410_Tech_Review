@@ -36,17 +36,20 @@ def load_models(model_name: str):
 
 
 # NER Experiment
-def run_ner_experiment(nlp_model, ner_dataset):
+def run_ner_experiment(model_name, ner_dataset):
     """Run NER experiment
 
     Args:
-        nlp_model (nlp): spaCy model
+        model_name (str): name of the spaCy model
         ner_dataset (list[dict]): NER dataset in spaCy format
 
     Returns:
         dict: evaluation results including precision, recall, f1, runtime, memory usage, and model size
     """
     print("Running NER experiment...")
+    
+    # Load model and start timer
+    nlp_model = load_models(model_name)
     start_time = time.time()
     
     # create spacy examples
@@ -123,8 +126,9 @@ def initializing_textcat(nlp_model, texts, labels, label_names):
     
 
 
-def train_categorizer(cls_nlp, train_examples, n_iter=5, batch_size = 16):
-    cls_nlp.initialize(get_examples=lambda: train_examples)
+def train_categorizer(cls_nlp, train_examples, n_iter = 10, batch_size = 16):
+    textcat = cls_nlp.get_pipe("textcat")
+    textcat.initialize(get_examples=lambda: train_examples, nlp=cls_nlp)
     for epoch in range(n_iter):
         random.shuffle(train_examples)
         losses = {}
@@ -138,10 +142,10 @@ def train_categorizer(cls_nlp, train_examples, n_iter=5, batch_size = 16):
 
     
 # Classification Experiment
-def run_classification_experiment(nlp_model, cls_dataset, label_names):
+def run_classification_experiment(model_name, cls_dataset, label_names):
     """Run classification experiment
     Args:
-        nlp_model (nlp): spaCy model
+        model_name (str): name of the spaCy model
         cls_dataset (list[dict]): classification dataset in spaCy format
         label_names (list[str]): list of class labels
     Returns:
@@ -150,7 +154,7 @@ def run_classification_experiment(nlp_model, cls_dataset, label_names):
     print("Running Classification experiment...")
     
     # build and train textcat pipeline
-    cls_nlp = nlp_model.copy()
+    cls_nlp = load_models(model_name)
     cls_nlp = build_textcat_pipeline(cls_nlp, label_names)
     
     # prepare examples
@@ -158,7 +162,7 @@ def run_classification_experiment(nlp_model, cls_dataset, label_names):
     examples = []
     for item in cls_dataset:
         text = item["text"]
-        label = label_names[item["label"]]
+        label = item["label"]
         doc = cls_nlp.make_doc(text)
         cats = {lbl: 0.0 for lbl in label_names}
         cats[label] = 1.0
@@ -169,7 +173,7 @@ def run_classification_experiment(nlp_model, cls_dataset, label_names):
     train_examples = examples[:split]
     dev_examples = examples[split:]
     dev_texts = [e.reference.text for e in dev_examples]
-    dev_labels = [max(e.y["cats"], key=e.y["cats"].get) for e in dev_examples]
+    dev_labels = [max(e.reference.cats, key=e.reference.cats.get) for e in dev_examples]
     
     # train classifier
     print("Training text categorizer...")
@@ -197,18 +201,19 @@ def run_classification_experiment(nlp_model, cls_dataset, label_names):
     
     
 # Similarity Experiment
-def run_similarity_experiment(nlp_model, sts_dataset):
+def run_similarity_experiment(model_name, sts_dataset):
     """Run similaity experiment
 
     Args:
-        nlp_model (nlp): spaCy model
+        model_name (str): name of the spaCy model
         sts_dataset (list[dict]): similarity dataset in spaCy format
 
     Returns:
         dict: evaluation results including pearson correlation, runtime, memory usage, and model size
     """
     print("Running Similarity experiment...")
-    
+    nlp_model = load_models(model_name)
+
     # Compute similarities and measure runtime
     start_time = time.time()
     sims = []
@@ -236,8 +241,6 @@ if __name__ == "__main__":
     argparser.add_argument("--model", type=str, required=True, help="Name of the model to evaluate")
     args = argparser.parse_args()
     
-    nlp_model = load_models(args.model)
-    
     print("Loading datasets...")
     ner_ds = load_ner_dataset()
     cls_ds = load_cls_dataset()
@@ -249,9 +252,9 @@ if __name__ == "__main__":
     formatted_sts_ds = format_sts_dataset(sts_ds)
 
     print("Running experiments...")
-    ner_result = run_ner_experiment(nlp_model, formatted_ner_ds)
-    cls_result = run_classification_experiment(nlp_model, formatted_cls_ds, label_names=cls_ds.features["label"].names)
-    sts_result = run_similarity_experiment(nlp_model, formatted_sts_ds)
+    ner_result = run_ner_experiment(args.model, formatted_ner_ds)
+    cls_result = run_classification_experiment(args.model, formatted_cls_ds, label_names=cls_ds.features["label"].names)
+    sts_result = run_similarity_experiment(args.model, formatted_sts_ds)
     
     print("Saving results...")
     final_result = {
