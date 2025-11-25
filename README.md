@@ -10,5 +10,5 @@ Author: Jiachen Liang (liang88), Jiachen Liu (jl315)
     - Medium: `en_core_web_md`
     - Large: `en_core_web_lg`
 - Transformer Models:
-    - RoBERTa-base: `RoBERTa-base`
+    - RoBERTa-base: `en_core_web_trf`
     
