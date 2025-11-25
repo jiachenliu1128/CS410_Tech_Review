@@ -35,6 +35,11 @@ def get_sts_pairs(sts_ds):
 # 1. NER Dataset: CoNLL-2003
 def load_ner_dataset(split="train", limit=5000):
     # loading the conll2003 dataset and converting to spacy format, limiting the size
+    # Example data:
+    # {'id': '0', 'tokens': ['EU', 'rejects', 'German', 'call', 'to', 'boycott', 'British', 'lamb', '.'],
+    #  'pos_tags': [NNP, VBZ, JJ, NN, TO, VB, JJ, NN, .],
+    #  'chunk_tags': [B-NP, B-VP, B-NP  , I-NP, B-PP, B-VP, B-NP, I-NP, O],
+    #  'ner_tags': [B-ORG, O, B-MISC, O, O, O, B-MISC, O, O]}   
     dataset = load_dataset("conll2003", split=split, trust_remote_code=True)
     dataset = dataset.select(range(min(limit, len(dataset)))) 
     return dataset
