@@ -11,4 +11,42 @@ Author: Jiachen Liang (liang88), Jiachen Liu (jl315)
     - Large: `en_core_web_lg`
 - Transformer Models:
     - RoBERTa-base: `en_core_web_trf`
+
+# Tasks
+## Name Entity Recognition (NER)
+- Identify named entities (people, organizations, locations, miscellaneous) in text and classify them with correct span boundaries.
+- Dataset: CoNLL-2003 NER dataset (BIO-tagged PER, ORG, LOC, MISC), 5000 lines are used.
+- CoNLL uses PER/ORG/LOC/MISC, but spaCy models are trained on OntoNotes using detailed labels with much more labels. This label mismatch lowers all metrics even though.
+- CoNLL provides token-level BIO tags, but spaCy requires character-span entities, so conversion is done in the code.
+
+## Classification
+- Classify news articles into one of four categories: World, Sports, Business, SciTech.
+- Dataset: AG News classification dataset with categories World, Sports, Business, SciTech, 5000 lines are used.
+- spaCy’s pretrained English pipelines do not include a classifier, so we must manually add a TextCategorizer.
+
+Must register labels manually (World, Sports, Business, SciTech).
+
+Calling nlp.initialize() breaks pretrained components and triggers [E955] lexeme_norm errors — correct fix is to initialize only the textcat component.
+
+Without training, the classifier predicts only one label → sklearn raises UndefinedMetricWarning.
+
+Added a custom training loop (3 epochs, minibatching) to produce meaningful accuracy.
+
+# Similarity
+What this task is:
+Measure how similar two sentences are based on their embeddings (semantic textual similarity).
+
+Dataset used:
+STS-B (Semantic Textual Similarity Benchmark).
+
+Issues / Challenges:
+
+Human similarity scores (0–5) and cosine similarity (–1 to 1) have different numeric scales → we evaluate using Pearson correlation, which is scale-invariant.
+
+spaCy standard model uses static word embeddings, while spaCy transformer uses contextual embeddings, so performance differs significantly.
+
+Need consistent vector extraction (doc.vector) across both models for fair comparison.
+
+Must ensure models actually support vectors — older spaCy models or disabled components will cause empty vectors.
+
     
