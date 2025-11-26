@@ -126,7 +126,7 @@ def initializing_textcat(nlp_model, texts, labels, label_names):
     
 
 
-def train_categorizer(cls_nlp, train_examples, n_iter = 10, batch_size = 16):
+def train_categorizer(cls_nlp, train_examples, n_iter = 50, batch_size = 16):
     textcat = cls_nlp.get_pipe("textcat")
     textcat.initialize(get_examples=lambda: train_examples, nlp=cls_nlp)
     for epoch in range(n_iter):
