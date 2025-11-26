@@ -33,7 +33,7 @@ def get_sts_pairs(sts_ds):
 
 # Load datasets
 # 1. NER Dataset: CoNLL-2003
-def load_ner_dataset(split="train", limit=5000):
+def load_ner_dataset(split="train", limit=20000):
     # loading the conll2003 dataset and converting to spacy format, limiting the size
     # Example data:
     # {'id': '0', 'tokens': ['EU', 'rejects', 'German', 'call', 'to', 'boycott', 'British', 'lamb', '.'],
@@ -42,26 +42,29 @@ def load_ner_dataset(split="train", limit=5000):
     #  'ner_tags': [B-ORG, O, B-MISC, O, O, O, B-MISC, O, O]}   
     dataset = load_dataset("conll2003", split=split, trust_remote_code=True)
     dataset = dataset.select(range(min(limit, len(dataset)))) 
+    print(f"Loaded NER dataset with {len(dataset)} samples.")
     return dataset
 
 # 2. Classification Dataset: AG News
-def load_cls_dataset(split="train", limit=5000):
+def load_cls_dataset(split="train", limit=20000):
     # using AG News for the classification task
     # Example data:
     # {'text': "Fears for T N pension after talks...", 'label': 2}
     # label 2 corresponds to 'Business'
     dataset = load_dataset("ag_news", split=split)
     dataset = dataset.select(range(min(limit, len(dataset))))
+    print(f"Loaded Classification dataset with {len(dataset)} samples.")
     return dataset
 
 # 3. Similarity Dataset: STS-Benchmark
-def load_sts_dataset(split="train", limit=5000):
+def load_sts_dataset(split="train", limit=20000):
     # STS-B gives sentence pairs and a score (0-5)
     # Example data:
     # {'sentence1': 'A man is dancing.', 'sentence2': 'A man is wearing a hat.', 'label': 5.0}
     # Scores range from 0.0 to 5.0
     dataset = load_dataset("glue", "stsb", split=split)
     dataset = dataset.select(range(min(limit, len(dataset))))
+    print(f"Loaded Similarity dataset with {len(dataset)} samples.")
     return dataset
 
 
