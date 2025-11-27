@@ -62,7 +62,7 @@ python -m spacy init config ./configs/transformer.cfg \
 ```
 
 ```python
-python -m spacy train ./configs/transformer.cfg --gpu-id -1 -o models/transformer_textcat
+python -m spacy train ./configs/transformer.cfg --gpu-id 0 -o models/transformer_textcat
 ```
 
     
