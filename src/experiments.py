@@ -1,7 +1,7 @@
 # experiments.py
 print("Importing libraries...")
 import argparse
-from pathlib import Path
+import numpy as np
 import time
 import spacy
 from spacy.training import Example
@@ -35,7 +35,11 @@ def load_models(model_name: str):
 
 
 
+
+################################################################################
 # NER Experiment
+################################################################################
+
 def run_ner_experiment(model_name, ner_dataset):
     """Run NER experiment
     Args:
@@ -48,7 +52,7 @@ def run_ner_experiment(model_name, ner_dataset):
     print("Running NER experiment...")
     
     # Load model and start timer
-    nlp_model = load_models(model_name)
+    nlp_model = load_models("en_core_web_trf" if model_name == "transformer" else model_name)
     start_time = time.time()
     
     # create spacy examples
@@ -73,8 +77,37 @@ def run_ner_experiment(model_name, ner_dataset):
     
     
     
-    
+
+################################################################################
 # Similarity Experiment
+################################################################################
+
+def get_doc_embedding(doc):
+    """
+    Get a document embedding that works for both transformer models
+    """
+    # Transformer-based models
+    if hasattr(doc._, "trf_data"):
+        trf_data = doc._.trf_data
+        if getattr(trf_data, "tensors", None):
+            tensor = trf_data.tensors[0]
+            # tensor shape is (1, seq_len, hidden_dim) or (seq_len, hidden_dim)
+            if tensor.ndim == 3:
+                tensor = tensor[0]
+            return tensor.mean(axis=0)
+    elif doc.vector is not None:
+        return doc.vector
+    else:
+        raise ValueError("Document does not have embedding vector data.")
+
+
+def cosine_sim(vec1, vec2):
+    denom = np.linalg.norm(vec1) * np.linalg.norm(vec2)
+    if denom == 0:
+        return 0.0
+    return float(np.dot(vec1, vec2) / denom)
+
+    
 def run_similarity_experiment(model_name, sts_dataset):
     """Run similaity experiment
 
@@ -86,7 +119,7 @@ def run_similarity_experiment(model_name, sts_dataset):
         dict: evaluation results including pearson correlation, runtime, memory usage, and model size
     """
     print("Running Similarity experiment...")
-    nlp_model = load_models(model_name)
+    nlp_model = load_models("en_core_web_trf" if model_name == "transformer" else model_name)
 
     # Compute similarities and measure runtime
     start_time = time.time()
@@ -94,7 +127,13 @@ def run_similarity_experiment(model_name, sts_dataset):
     for d in sts_dataset:
         doc1 = nlp_model(d["sentence1"])
         doc2 = nlp_model(d["sentence2"])
-        sims.append(doc1.similarity(doc2))
+        if model_name == "transformer":
+            # For transformer models, extract last layer embeddings
+            v1 = get_doc_embedding(doc1)
+            v2 = get_doc_embedding(doc2)
+            sims.append(cosine_sim(v1, v2))
+        else:
+            sims.append(doc1.similarity(doc2))
     runtime = time.time() - start_time
 
     # Get human scores
@@ -111,6 +150,10 @@ def run_similarity_experiment(model_name, sts_dataset):
  
  
     
+  
+################################################################################
+# Classification Experiment
+################################################################################ 
     
 def build_textcat_pipeline(nlp_model, label_names):
     """
@@ -136,8 +179,6 @@ def build_textcat_pipeline(nlp_model, label_names):
     return nlp_model
 
 
-
-
 def prepare_examples(cls_nlp, cls_dataset, label_names):
     examples = []
     for item in cls_dataset:
@@ -148,8 +189,6 @@ def prepare_examples(cls_nlp, cls_dataset, label_names):
         cats[label] = 1.0
         examples.append(Example.from_dict(doc, {"cats": cats}))   
     return examples
-    
-    
 
 
 def train_categorizer(cls_nlp, train_examples, n_iter = 5, batch_size = 16):
@@ -172,29 +211,21 @@ def train_categorizer(cls_nlp, train_examples, n_iter = 5, batch_size = 16):
     return cls_nlp
     
     
-    
 
-    
-# Classification Experiment
-def run_classification_experiment(model_name, cls_dataset_train, cls_dataset_test):
+def run_classification_experiment(model_name, cls_dataset_train, cls_dataset_test, label_names):
     """Run classification experiment
     Args:
         model_name (str): name of the spaCy model
         cls_dataset_train (list[dict]): training classification dataset in spaCy format
         cls_dataset_test (list[dict]): testing classification dataset in spaCy format
+        label_names (list[str]): list of label names for classification
     Returns:
         dict: evaluation results including precision, recall, f1, runtime, memory usage, and model size
     """
     print("Running Classification experiment...")
-    
-    # get label names and do sanifty check
-    label_names = cls_dataset_train[0]["label"].keys()
-    if set(label_names) != set(cls_dataset_test[0]["label"].keys()):
-        raise ValueError("Train and test datasets have different label names.")
-    
+
     # build and train textcat pipeline
-    cls_nlp = load_models(model_name)
-    cls_nlp = build_textcat_pipeline(cls_nlp, label_names) 
+    cls_nlp = load_models("./models/transformer_textcat/model-best" if model_name == "transformer" else model_name)
 
     # convert datasets to spacy examples
     train_examples = prepare_examples(cls_nlp, cls_dataset_train, label_names)
@@ -202,9 +233,11 @@ def run_classification_experiment(model_name, cls_dataset_train, cls_dataset_tes
     dev_texts = [e.reference.text for e in dev_examples]
     dev_labels = [max(e.reference.cats, key=e.reference.cats.get) for e in dev_examples]
     
-    # train classifier
-    print("Training text categorizer...")
-    cls_nlp = train_categorizer(cls_nlp, train_examples)
+    # initialize and train classifier for base models
+    if model_name != "transformer":
+        print("Training text categorizer for base model...")
+        cls_nlp = build_textcat_pipeline(cls_nlp, label_names) 
+        cls_nlp = train_categorizer(cls_nlp, train_examples)
     
     # run experiment and measure runtime
     start_time = time.time()
@@ -227,16 +260,24 @@ def run_classification_experiment(model_name, cls_dataset_train, cls_dataset_tes
 
 
 
+
+
+
+
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
     argparser.add_argument("--model", type=str, required=True, help="Name of the model to evaluate")
     args = argparser.parse_args()
     
     print("Loading datasets...")
-    ner_ds = load_ner_dataset(split="test", limit=10000)
-    sts_ds = load_sts_dataset(split="test", limit=10000)
+    ner_ds = load_ner_dataset(split="train", limit=10000)
+    sts_ds = load_sts_dataset(split="train", limit=10000)
     cls_ds_train = load_cls_dataset(split="train", limit=20000)
     cls_ds_test = load_cls_dataset(split="test", limit=10000)
+    
+    label_names = cls_ds_train.features["label"].names
+    if label_names != cls_ds_test.features["label"].names:
+        raise ValueError("Train and test classification datasets have different label names.")
     
     print("Formatting datasets...")
     formatted_ner_ds = format_ner_dataset(ner_ds)
@@ -247,9 +288,10 @@ if __name__ == "__main__":
     print("Running experiments...")
     ner_result = run_ner_experiment(args.model, formatted_ner_ds)
     sts_result = run_similarity_experiment(args.model, formatted_sts_ds)
-    # cls_result = run_classification_experiment(args.model, 
-    #                                            formatted_cls_ds_train, 
-    #                                            formatted_cls_ds_test)
+    cls_result = run_classification_experiment(args.model, 
+                                               formatted_cls_ds_train, 
+                                               formatted_cls_ds_test, 
+                                               label_names)
     
     print("Saving results...")
     final_result = {

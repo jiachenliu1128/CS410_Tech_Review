@@ -51,7 +51,7 @@ if __name__ == "__main__":
     convert_split_to_spacy(
         split="train",
         output_path="data/cls_train.spacy",
-        limit=20000,
+        limit=30000,
     )
 
     # Use AG News test split as dev
