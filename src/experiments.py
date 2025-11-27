@@ -278,6 +278,7 @@ if __name__ == "__main__":
     label_names = cls_ds_train.features["label"].names
     if label_names != cls_ds_test.features["label"].names:
         raise ValueError("Train and test classification datasets have different label names.")
+    print(f"Classification labels: {label_names}")
     
     print("Formatting datasets...")
     formatted_ner_ds = format_ner_dataset(ner_ds)

@@ -15,20 +15,16 @@ Author: Jiachen Liang (liang88), Jiachen Liu (jl315)
 # Tasks
 ## Name Entity Recognition (NER)
 - Identify named entities (people, organizations, locations, miscellaneous) in text and classify them with correct span boundaries.
-- Dataset: CoNLL-2003 NER dataset (BIO-tagged PER, ORG, LOC, MISC), 5000 lines are used.
+- Dataset: CoNLL-2003 NER dataset (BIO-tagged PER, ORG, LOC, MISC), 10000 samples are used.
 - CoNLL uses PER/ORG/LOC/MISC, but spaCy models are trained on OntoNotes using detailed labels with much more labels. This label mismatch lowers all metrics even though.
 - CoNLL provides token-level BIO tags, but spaCy requires character-span entities, so conversion is done in the code.
 
 ## Classification
-- Classify news articles into one of four categories: World, Sports, Business, SciTech.
-- Dataset: AG News classification dataset with categories World, Sports, Business, SciTech, 5000 lines are used.
-- spaCy’s pretrained English pipelines do not include a classifier, so we must manually add a TextCategorizer.
+- Classify news articles into one of categories that we defined.
+- Dataset: AG News classification dataset with categories [categories], 20000 samples are used for training and 7600 samples are used for validation.
+- spaCy’s pretrained English pipelines do not include a classifier, so we must manually add a TextCategorizer for each model.
+- Base modes can be trained on CPU, but transformer model training requires GPU with CUDA support.
 
-Must register labels manually (World, Sports, Business, SciTech).
-
-Calling nlp.initialize() breaks pretrained components and triggers [E955] lexeme_norm errors — correct fix is to initialize only the textcat component.
-
-Without training, the classifier predicts only one label → sklearn raises UndefinedMetricWarning.
 
 Added a custom training loop (3 epochs, minibatching) to produce meaningful accuracy.
 
@@ -41,7 +37,7 @@ What this task is:
 Measure how similar two sentences are based on their embeddings (semantic textual similarity).
 
 Dataset used:
-STS-B (Semantic Textual Similarity Benchmark).
+STS-B (Semantic Textual Similarity Benchmark) with about 5700 samples.
 
 Issues / Challenges:
 
