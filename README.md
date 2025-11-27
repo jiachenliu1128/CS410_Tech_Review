@@ -49,4 +49,20 @@ Need consistent vector extraction (doc.vector) across both models for fair compa
 
 Must ensure models actually support vectors — older spaCy models or disabled components will cause empty vectors.
 
+# Notes when writing the report:
+- Need to mention the configuration of our machine, especially if GPU is used
+
+# Transformer Classifier Training Commands:
+```python
+python -m spacy init config ./configs/transformer.cfg \
+    --lang en \
+    --pipeline transformer,textcat \
+    --optimize accuracy \
+    --gpu
+```
+
+```python
+python -m spacy train ./configs/transformer.cfg --gpu-id 0 -o models/transformer_textcat
+```
+
     
