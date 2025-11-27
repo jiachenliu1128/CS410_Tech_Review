@@ -10,7 +10,7 @@ Author: Jiachen Liang (liang88), Jiachen Liu (jl315)
     - Medium: `en_core_web_md`
     - Large: `en_core_web_lg`
 - Transformer Models:
-    - RoBERTa-base: `en_core_web_trf`
+    - RoBERTa-base: `transformer`
 
 # Tasks
 ## Name Entity Recognition (NER)
@@ -32,6 +32,10 @@ Without training, the classifier predicts only one label → sklearn raises Unde
 
 Added a custom training loop (3 epochs, minibatching) to produce meaningful accuracy.
 
+Transformer need to be trained separately
+
+data split
+
 # Similarity
 What this task is:
 Measure how similar two sentences are based on their embeddings (semantic textual similarity).
@@ -48,6 +52,8 @@ spaCy standard model uses static word embeddings, while spaCy transformer uses c
 Need consistent vector extraction (doc.vector) across both models for fair comparison.
 
 Must ensure models actually support vectors — older spaCy models or disabled components will cause empty vectors.
+
+Extract last layer for transformer embeddings and use cosine similarity to ensure consistency.
 
 # Notes when writing the report:
 - Need to mention the configuration of our machine. In order to play a fair game, we are using CPU for all models (includeing transformer). GPU is used for transformer training.
