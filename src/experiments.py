@@ -195,7 +195,6 @@ def train_categorizer(cls_nlp, train_examples, n_iter = 5, batch_size = 16):
     textcat = cls_nlp.get_pipe("textcat")
     textcat.initialize(get_examples=lambda: train_examples, nlp=cls_nlp)
     optimizer = cls_nlp.resume_training()
-    # optimizer = cls_nlp.initialize(lambda: train_examples)
     
     for epoch in range(n_iter):
         random.shuffle(train_examples)

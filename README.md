@@ -21,18 +21,12 @@ Author: Jiachen Liang (liang88), Jiachen Liu (jl315)
 
 ## Classification
 - Classify news articles into one of categories that we defined.
-- Dataset: AG News classification dataset with categories [categories], 20000 samples are used for training and 7600 samples are used for validation.
+- Dataset: AG News classification dataset with categories ['World', 'Sports', 'Business', 'Sci/Tech'], 20000 samples are used for training and 7600 samples are used for validation.
 - spaCy’s pretrained English pipelines do not include a classifier, so we must manually add a TextCategorizer for each model.
-- Base modes can be trained on CPU, but transformer model training requires GPU with CUDA support.
+- Base modes can be trained on CPU in the `experiment.py` script, but transformer model training requires GPU with CUDA support.
+- Instruction for training transformer classifier is provided at the end of this README.
 
-
-Added a custom training loop (3 epochs, minibatching) to produce meaningful accuracy.
-
-Transformer need to be trained separately
-
-data split
-
-# Similarity
+## Similarity
 What this task is:
 Measure how similar two sentences are based on their embeddings (semantic textual similarity).
 
