@@ -33,7 +33,7 @@ def get_sts_pairs(sts_ds):
 
 # Load datasets
 # 1. NER Dataset: CoNLL-2003
-def load_ner_dataset(split="train", limit=20000):
+def load_ner_dataset(split="test", limit=10000):
     # loading the conll2003 dataset and converting to spacy format, limiting the size
     # Example data:
     # {'id': '0', 'tokens': ['EU', 'rejects', 'German', 'call', 'to', 'boycott', 'British', 'lamb', '.'],
@@ -46,7 +46,7 @@ def load_ner_dataset(split="train", limit=20000):
     return dataset
 
 # 2. Classification Dataset: AG News
-def load_cls_dataset(split="train", limit=20000):
+def load_cls_dataset(split="test", limit=10000):
     # using AG News for the classification task
     # Example data:
     # {'text': "Fears for T N pension after talks...", 'label': 2}
@@ -57,7 +57,7 @@ def load_cls_dataset(split="train", limit=20000):
     return dataset
 
 # 3. Similarity Dataset: STS-Benchmark
-def load_sts_dataset(split="train", limit=20000):
+def load_sts_dataset(split="test", limit=10000):
     # STS-B gives sentence pairs and a score (0-5)
     # Example data:
     # {'sentence1': 'A man is dancing.', 'sentence2': 'A man is wearing a hat.', 'label': 5.0}
