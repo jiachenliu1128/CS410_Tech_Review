@@ -25,18 +25,6 @@ You need to choose one of the following spaCy English models for `experiments.py
 
 
 
-# Mahcine Specifications
-- CPU: AMD Ryzen™ 7 260
-- GPU: NVIDIA GeForce RTX 5060 Laptop GPU
-- RAM: 16 GB
-- OS: Windows 11
-- Python version: 3.12.12
-
-
-
-
-
-
 # Tasks
 ## Name Entity Recognition (NER)
 - Identify named entities (people, organizations, locations, miscellaneous) in text and classify them with correct span boundaries.
@@ -80,5 +68,15 @@ python -m spacy init config ./configs/transformer.cfg \
 ```python
 python -m spacy train ./configs/transformer.cfg --gpu-id 0 -o models/transformer_textcat
 ```
+
+
+
+
+# Mahcine Specifications
+- CPU: AMD Ryzen™ 7 260
+- GPU: NVIDIA GeForce RTX 5060 Laptop GPU
+- RAM: 16 GB
+- OS: Windows 11
+- Python version: 3.12.12
 
     
