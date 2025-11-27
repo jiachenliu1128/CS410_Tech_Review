@@ -26,12 +26,6 @@ def load_models(model_name: str):
         nlp: spaCy model
     """
     # First try to load directly (works if already installed or in sys.path)
-    gpu_available = spacy.prefer_gpu()
-    if gpu_available:
-        print(f"✓ GPU is available and activated (ID: {gpu_available})")
-    else:
-        print("⚠ GPU not available, using CPU")
-    
     try:
         return spacy.load(model_name)
     except Exception as e:

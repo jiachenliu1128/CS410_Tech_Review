@@ -50,7 +50,7 @@ Need consistent vector extraction (doc.vector) across both models for fair compa
 Must ensure models actually support vectors — older spaCy models or disabled components will cause empty vectors.
 
 # Notes when writing the report:
-- Need to mention the configuration of our machine, especially if GPU is used
+- Need to mention the configuration of our machine. In order to play a fair game, we are using CPU for all models (includeing transformer). GPU is used for transformer training.
 
 # Transformer Classifier Training Commands:
 ```python
