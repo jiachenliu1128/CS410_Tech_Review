@@ -3,6 +3,7 @@ import psutil
 import os
 import json
 from sklearn.metrics import precision_recall_fscore_support
+from transformers.utils import cached_file   
 
 def get_memory_usage():
     return psutil.Process().memory_info().rss / (1024**2)
@@ -25,3 +26,8 @@ def calculate_metric(true_labels, pred_labels):
         "recall": recall,
         "f1": f1
     }
+    
+def get_cached_model_path(nlp_model, pipe_name="transformer"):
+    model_name = nlp_model.get_pipe(pipe_name).model._first_module().auto_model.name_or_path
+    config_path = cached_file(model_name, "config.json")
+    return config_path.replace("config.json", "")

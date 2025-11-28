@@ -4,12 +4,13 @@ import argparse
 import numpy as np
 import time
 import spacy
+import spacy_sentence_bert
 from spacy.training import Example
 from spacy.util import minibatch
 from scipy.stats import pearsonr
 from dataloader import load_ner_dataset, load_cls_dataset, load_sts_dataset
 from data_formatter import format_ner_dataset, format_cls_dataset, format_sts_dataset
-from utils import get_memory_usage, get_model_size, save_results, calculate_metric
+from utils import get_memory_usage, get_model_size, save_results, calculate_metric, get_cached_model_path
 import random
 print("Libraries imported.")
 
@@ -41,7 +42,9 @@ def load_models(model_name: str):
 ################################################################################
 
 def run_ner_experiment(model_name, ner_dataset):
-    """Run NER experiment
+    """
+    Run NER experiment
+    
     Args:
         model_name (str): name of the spaCy model
         ner_dataset (list[dict]): NER dataset in spaCy format
@@ -81,27 +84,18 @@ def run_ner_experiment(model_name, ner_dataset):
 ################################################################################
 # Similarity Experiment
 ################################################################################
-
-def get_doc_embedding(doc):
-    """
-    Get a document embedding that works for both transformer models
-    """
-    # Transformer-based models
-    if hasattr(doc._, "trf_data"):
-        trf_data = doc._.trf_data
-        if getattr(trf_data, "tensors", None):
-            tensor = trf_data.tensors[0]
-            # tensor shape is (1, seq_len, hidden_dim) or (seq_len, hidden_dim)
-            if tensor.ndim == 3:
-                tensor = tensor[0]
-            return tensor.mean(axis=0)
-    elif doc.vector is not None:
-        return doc.vector
-    else:
-        raise ValueError("Document does not have embedding vector data.")
-
-
+    
 def cosine_sim(vec1, vec2):
+    """
+    Compute cosine similarity between two vectors
+    
+    Args:
+        vec1 (np.ndarray): first vector
+        vec2 (np.ndarray): second vector
+        
+    Returns:
+        float: cosine similarity
+    """
     denom = np.linalg.norm(vec1) * np.linalg.norm(vec2)
     if denom == 0:
         return 0.0
@@ -109,7 +103,8 @@ def cosine_sim(vec1, vec2):
 
     
 def run_similarity_experiment(model_name, sts_dataset):
-    """Run similaity experiment
+    """
+    Run similaity experiment
 
     Args:
         model_name (str): name of the spaCy model
@@ -119,7 +114,8 @@ def run_similarity_experiment(model_name, sts_dataset):
         dict: evaluation results including pearson correlation, runtime, memory usage, and model size
     """
     print("Running Similarity experiment...")
-    nlp_model = load_models("en_core_web_trf" if model_name == "transformer" else model_name)
+    nlp_model = spacy_sentence_bert.load_model('en_stsb_roberta_large') if model_name == "transformer" else load_models(model_name)
+    model_path = get_cached_model_path(nlp_model, pipe_name="sentence_bert") if model_name == "transformer" else nlp_model.path
 
     # Compute similarities and measure runtime
     start_time = time.time()
@@ -127,13 +123,7 @@ def run_similarity_experiment(model_name, sts_dataset):
     for d in sts_dataset:
         doc1 = nlp_model(d["sentence1"])
         doc2 = nlp_model(d["sentence2"])
-        if model_name == "transformer":
-            # For transformer models, extract last layer embeddings
-            v1 = get_doc_embedding(doc1)
-            v2 = get_doc_embedding(doc2)
-            sims.append(cosine_sim(v1, v2))
-        else:
-            sims.append(doc1.similarity(doc2))
+        sims.append(doc1.similarity(doc2))
     runtime = time.time() - start_time
 
     # Get human scores
@@ -143,7 +133,7 @@ def run_similarity_experiment(model_name, sts_dataset):
         "pearson": float(pearsonr(sims, human)[0]),
         "runtime_sec": runtime,
         "memory_mb": get_memory_usage(),
-        "model_size_mb": get_model_size(nlp_model.path)
+        "model_size_mb": get_model_size(model_path)
     }
     
     
@@ -180,6 +170,17 @@ def build_textcat_pipeline(nlp_model, label_names):
 
 
 def prepare_examples(cls_nlp, cls_dataset, label_names):
+    """
+    Convert data to Examples
+
+    Args:
+        cls_nlp (spacy.language.Language): spaCy Language model
+        cls_dataset (list[dict]): classification dataset
+        label_names (list[str]): list of label names for classification
+
+    Returns:
+        list[spacy.training.Example]: list of spaCy Example objects
+    """
     examples = []
     for item in cls_dataset:
         text = item["text"]
@@ -191,7 +192,19 @@ def prepare_examples(cls_nlp, cls_dataset, label_names):
     return examples
 
 
-def train_categorizer(cls_nlp, train_examples, n_iter = 5, batch_size = 16):
+def train_categorizer(cls_nlp, train_examples, n_iter = 10, batch_size = 16):
+    """
+    Train base models
+
+    Args:
+        cls_nlp (_type_): _description_
+        train_examples (_type_): _description_
+        n_iter (int, optional): _description_. Defaults to 5.
+        batch_size (int, optional): _description_. Defaults to 16.
+
+    Returns:
+        _type_: _description_
+    """
     textcat = cls_nlp.get_pipe("textcat")
     textcat.initialize(get_examples=lambda: train_examples, nlp=cls_nlp)
     optimizer = cls_nlp.resume_training()
@@ -212,19 +225,22 @@ def train_categorizer(cls_nlp, train_examples, n_iter = 5, batch_size = 16):
     
 
 def run_classification_experiment(model_name, cls_dataset_train, cls_dataset_test, label_names):
-    """Run classification experiment
+    """
+    Run classification experiment
+    
     Args:
         model_name (str): name of the spaCy model
         cls_dataset_train (list[dict]): training classification dataset in spaCy format
         cls_dataset_test (list[dict]): testing classification dataset in spaCy format
         label_names (list[str]): list of label names for classification
+        
     Returns:
         dict: evaluation results including precision, recall, f1, runtime, memory usage, and model size
     """
     print("Running Classification experiment...")
 
     # build and train textcat pipeline
-    cls_nlp = load_models("./models/transformer_textcat/model-best" if model_name == "transformer" else model_name)
+    cls_nlp = load_models("./models/trf_textcat/model-best" if model_name == "transformer" else model_name)
 
     # convert datasets to spacy examples
     train_examples = prepare_examples(cls_nlp, cls_dataset_train, label_names)
@@ -265,13 +281,13 @@ def run_classification_experiment(model_name, cls_dataset_train, cls_dataset_tes
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
-    argparser.add_argument("--model", type=str, required=True, help="Name of the model to evaluate")
+    argparser.add_argument("--model", type=str, required=True, choices=["en_core_web_sm", "en_core_web_md", "en_core_web_lg", "transformer"], help="Name of the model to evaluate")
     args = argparser.parse_args()
     
     print("Loading datasets...")
     ner_ds = load_ner_dataset(split="train", limit=10000)
     sts_ds = load_sts_dataset(split="train", limit=10000)
-    cls_ds_train = load_cls_dataset(split="train", limit=20000)
+    cls_ds_train = load_cls_dataset(split="train", limit=30000)
     cls_ds_test = load_cls_dataset(split="test", limit=10000)
     
     label_names = cls_ds_train.features["label"].names
