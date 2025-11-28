@@ -13,14 +13,16 @@ This repository contains code and documentation for evaluating the performance (
 
 
 
-# Models
+# Usage
+```python
+python src/experiments.py --model <model_name>
+```
 You need to choose one of the following spaCy English models for `experiments.py`
 - Standard Models:
     - Small: `en_core_web_sm`
     - Medium: `en_core_web_md`
     - Large: `en_core_web_lg`
 - Transformer Model: `transformer`
-
 
 
 
@@ -37,13 +39,12 @@ You need to choose one of the following spaCy English models for `experiments.py
 - Measure how similar two sentences are based on their embeddings (semantic textual similarity).
 - Dataset: STS-B (Semantic Textual Similarity Benchmark) with about 5700 samples.
 - Labeled similarity scores (0–5) and cosine similarity (–1 to 1) have different numeric scales → we evaluate using Pearson correlation, which is scale-invariant.
-- For en_core_web_sm  has no word vectors, so the result of the Doc.similarity method will be based on the tagger, parser and NER.
-- For transformer model, we extract the last layer hidden states as the embeddings and use cosine similarity to ensure consistency.
+- `en_core_web_sm` has no word vectors, so the result of the Doc.similarity method will be based on the tagger, parser and NER.
 - Evaluation metric: Pearson correlation coefficient.
 
 ## Classification
 - Classify news articles into one of categories that we defined.
-- Dataset: AG News classification dataset with categories ['World', 'Sports', 'Business', 'Sci/Tech'], 20000 samples are used for training and 7600 samples are used for validation.
+- Dataset: AG News classification dataset with categories ['World', 'Sports', 'Business', 'Sci/Tech'], 30000 samples are used for training and 7600 samples are used for validation.
 - spaCy’s pretrained English pipelines do not include a classifier, so we must manually add a TextCategorizer for each model.
     - Base modes can be trained on CPU in the `experiment.py` script, but transformer model training requires GPU with CUDA support.   
     - Instruction for training transformer classifier is provided at the end of this README.
@@ -54,20 +55,32 @@ You need to choose one of the following spaCy English models for `experiments.py
 
 
 
-# Transformer Classifier Training (before running `experiments.py`):
+# Detail on Transformer Models
+Fine-tuning transformer models is a crucial step before they perform specific NLP tasks. In this project, we use different fine-tuned models for different tasks to achieve optimal performance.
+- For NER task, we use an existing model `en_core_web_trf` from spaCy, which is specifically fine-tuned for Named Entity Recognition tasks.
+- For similarity task, we use an existing model `en_stsb_roberta_large` from spaCy, which is specifically fine-tuned for semantic textual similarity tasks.
+- For classification task, we have fine-tuned the spaCy transformer model with AG News dataset locally (we call the fine-tuned classification model `trf_textcat`). Instruction for training transformer classifier is provided below.
+
+
+
+
+
+# Transformer Classifier Fine-tuning (before running `experiments.py`):
 - Step 1: run `python cls_to_spacy.py` to convert the AG News dataset to spaCy format.
-- Step 2: run the following commands to create config and train the transformer text classifier:
-```python
-python -m spacy init config ./configs/transformer.cfg \
-    --lang en \
-    --pipeline transformer,textcat \
-    --optimize accuracy \
-    --gpu
-```
-- Step 3: run the following command to train the transformer text classifier:
-```python
-python -m spacy train ./configs/transformer.cfg --gpu-id 0 -o models/transformer_textcat
-```
+- Step 2 : generate the `configs/trf_textcat.cfg`:
+    ```
+    python -m spacy init config configs/trf_textcat.cfg --lang en --pipeline transformer,textcat --optimize accuracy --gpu
+    ```
+- Step 3: modify the `configs/trf_textcat.cfg` to set the paths for training and development datasets:
+    ```cfg
+    [paths]
+    train = "data/cls_train.spacy"
+    dev   = "data/cls_dev.spacy"
+    ```
+- Step 4: run the following command to train the transformer text classifier:
+    ```python
+    python -m spacy train ./configs/trf_textcat.cfg --gpu-id 0 -o models/trf_textcat
+    ```
 
 
 
