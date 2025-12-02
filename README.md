@@ -44,7 +44,7 @@ You need to choose one of the following spaCy English models for `experiments.py
 
 ## Classification
 - Classify news articles into one of categories that we defined.
-- Dataset: AG News classification dataset with categories ['World', 'Sports', 'Business', 'Sci/Tech'], 30000 samples are used for training and 7600 samples are used for validation.
+- Dataset: AG News classification dataset with categories ['World', 'Sports', 'Business', 'Sci/Tech'], 30000 samples are used for training and 7600 samples are used for test.
 - spaCy’s pretrained English pipelines do not include a classifier, so we must manually add a TextCategorizer for each model.
     - Base modes can be trained on CPU in the `experiment.py` script, but transformer model training requires GPU with CUDA support.   
     - Instruction for training transformer classifier is provided at the end of this README.
