@@ -1,4 +1,3 @@
-# experiments.py
 print("Importing libraries...")
 import argparse
 import numpy as np
@@ -290,6 +289,7 @@ if __name__ == "__main__":
     cls_ds_train = load_cls_dataset(split="train", limit=30000)
     cls_ds_test = load_cls_dataset(split="test", limit=10000)
     
+    print("Checking classification label consistency...")
     label_names = cls_ds_train.features["label"].names
     if label_names != cls_ds_test.features["label"].names:
         raise ValueError("Train and test classification datasets have different label names.")

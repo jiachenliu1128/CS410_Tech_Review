@@ -1,5 +1,14 @@
 # Helpers to convert conll datasets to spaCy format
 def conll_to_spacy_example(ex, label_names):
+    """Modify conll data to spaCy format
+
+    Args:
+        ex (dict): conll example with "tokens" and "ner_tags"
+        label_names (list[str]): list of label names for NER tags
+
+    Returns:
+        dict: spaCy formatted example
+    """
     tokens = ex["tokens"]
     tag_ids = ex["ner_tags"]
 
@@ -51,6 +60,14 @@ def conll_to_spacy_example(ex, label_names):
     return {"text": text, "entities": entities}
 
 def format_ner_dataset(ner_ds):
+    """Format NER dataset from conll to spaCy format
+
+    Args:
+        ner_ds (Dataset): conll NER dataset
+
+    Returns:
+        list[dict]: spaCy formatted NER dataset
+    """
     # convert the conll dataset to spaCy format
     formatted_dataset = []
     for i, d in enumerate(ner_ds):
@@ -63,6 +80,14 @@ def format_ner_dataset(ner_ds):
 
 # Helper to convert ag_news datasets to spaCy format
 def format_cls_dataset(cls_ds):
+    """Convert ag_news datasets to spaCy format
+
+    Args:
+        cls_ds (Dataset): classification dataset
+
+    Returns:
+        list[dict]: spaCy formatted classification dataset
+    """
     label_names = cls_ds.features["label"].names
     formatted_dataset = []
     for i, d in enumerate(cls_ds):
@@ -78,4 +103,12 @@ def format_cls_dataset(cls_ds):
 
 # Helper to convert sts-b datasets to spaCy format
 def format_sts_dataset(sts_ds):
+    """Convert sts-b datasets to spaCy format
+    
+    Args:
+        sts_ds (Dataset): sts-b dataset
+        
+    Returns:
+        list[dict]: spaCy formatted sts-b dataset
+    """
     return sts_ds
